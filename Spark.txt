@@ -1,0 +1,371 @@
+1. Spark Architecture?
+	(i). How internally spark split the job , stage and task?.
+	(ii). DAG Graph
+2. Spark memory management?.
+	(i). How can we define the driver memory and executor memory
+	(ii). How can we configure number of cores.
+	(iii). How spark internally handling the memory?.
+	(iv). How can we define the core and memory based on the file?.
+	(v). Driver and core usage and functionality?.
+3. spark submit parameters?.
+		Answer : spark-submit --class <CLASS_NAME> --num-executors ? --executor-cores ? --executor-memory ? ...
+4. What is shuffle?. How shuffle works in spark and how can avoid shuffle?. when does shuffle happen?.
+5. Persist and cache in spark and optimization technique?.
+   (i). Persist vs Cache
+		Both persist() and cache() are the Spark optimization technique, used to store the data, 
+		but only difference is cache() method by default stores the data in-memory (MEMORY_ONLY) whereas in persist() method developer can define the storage level to in-memory or in-disk
+   (ii). catalyst optimizer?
+   3. Serialization
+   4. use advance variable-broadcast/Accumulator
+   5. by key operation-use reduceByKey instead of groupbyKey
+   6. File format selection
+   7. Garbage collection Tuning
+   8. level of parallelism-coalesce or repartition
+       
+	
+6. Steaming in spark?.
+	(i). Structured Stream and Dstream?.
+	
+7. Globaltempview in spark?.
+Temporary views in Spark SQL are session-scoped and will disappear if the session that creates it terminates. 
+If you want to have a temporary view that is shared among all sessions and keep alive until the Spark application terminates, 
+you can create a global temporary view. Global temporary view is tied to a system preserved database global_temp.
+
+8. Windows functions in spark?.
+Window functions operate on a group of rows, referred to as a window, and calculate a return value for each row based on the group of rows. 
+Window functions are useful for processing tasks such as calculating a moving average, computing a cumulative statistic, or accessing the value of rows given the relative position of the current row.
+
+9. RDD vs Dataframe vs Dataset
+		(i).   How can we convert RDD to dataframe?. (wise versa).
+		(ii).  What are the optimization technique applying in the RDD, Dataframe and Dataset?.
+		(iii). Write sample code how create rdd, dataframe and dataset and how to apply struct type and schema in rdd and dataframe?.
+		(iv).  How can we fetch the data from rdd, dataframe and dataset?.
+		(v).   How to store the data into rdd , dataframe from the files?
+		(vi).  How can i use the new column when i am trying to convert the rdd to dataframe?.
+		(vii). How to drop duplicates values from the dataframe?.
+				Answer : 
+					RDD – RDD is a distributed collection of data elements spread across many machines in the cluster. RDDs are a set of Java or Scala objects representing data.
+					DataFrame – A DataFrame is a distributed collection of data organized into named columns. It is conceptually equal to a table in a relational database.
+					DataSet – It is an extension of DataFrame API that provides the functionality of – type-safe, object-oriented programming interface of the RDD API and performance benefits of the Catalyst query optimizer and off heap storage mechanism of a DataFrame API.
+						Link : https://data-flair.training/blogs/apache-spark-rdd-vs-dataframe-vs-dataset/
+
+10. Narrow and wide transformation in spark?.
+				Answer : 
+					Spark Transformation is a function that produces new RDD from the existing RDDs. It takes RDD as input and produces one or more RDD as output. Each time it creates new RDD when we apply any transformation. Thus, the so input RDDs, cannot be changed since RDD are immutable in nature.
+
+					Transformations are lazy in nature i.e., they get execute when we call an action. They are not executed immediately. Two most basic type of transformations is a map(), filter().
+					After the transformation, the resultant RDD is always different from its parent RDD. It can be smaller (e.g. filter, count, distinct, sample), bigger (e.g. flatMap(), union(), Cartesian()) or the same size (e.g. map).
+
+					There are two types of transformations:
+
+						Narrow transformation – In Narrow transformation, all the elements that are required to compute the records in single partition live in the single partition of parent RDD. A limited subset of partition is used to calculate the result. Narrow transformations are the result of map(), filter().
+						
+						map
+						flatMap
+						mapPartition
+						filter
+						sample
+						union
+						
+						Wide transformation – In wide transformation, all the elements that are required to compute the records in the single partition may live in many partitions of parent RDD. The partition may live in many partitions of parent RDD. Wide transformations are the result of groupbyKey() and reducebyKey().
+						
+						intersection
+						distinct
+						reduceByKey
+						groupByKey
+						join
+						catersian
+						repartition
+						coalesce
+
+					we can apply two type of RDD transformations: narrow transformation (e.g. map(), filter() etc.) and wide transformation (e.g. reduceByKey()). Narrow transformation does not require the shuffling of data across a partition, the narrow transformations will group into single stage while in wide transformation the data shuffles. Hence, Wide transformation results in stage boundaries.
+
+					URL : https://data-flair.training/blogs/spark-rdd-operations-transformations-actions/
+
+11. Serialization in Spark?.
+		(i). Java Serialization.
+		(ii). Kyro Serialization.
+					Answer: 
+						Serialization is the process of converting jvm objects into a stream of  bytes.
+						Deserialization is the process of construction of a jvm object from a stream of bytes.
+
+						While moving the data between nodes during wide transformation, data objects or jvm objects cannot be moved directly these objects must be serialized.
+
+						how serialization happens is as below	
+
+						node1 has jvm objects -> serialization happens converted into serialized objects -> data transfer happens through network -> node2 receives the serialized objects and converts it back to jvm objects
+
+						Serialization plays an important role in the performance of any distributed application. Formats that are slow to serialize objects into, or consume a large number of bytes, will greatly slow down the computation. Often, this will be the first thing you should tune to optimize a Spark application. Spark aims to strike a balance between convenience (allowing you to work with any Java type in your operations) and performance. It provides two serialization libraries:
+
+							Java serialization: By default, Spark serializes objects using Java’s ObjectOutputStream framework, and can work with any class you create that implements java.io.Serializable. You can also control the performance of your serialization more closely by extending java.io.Externalizable. Java serialization is flexible but often quite slow, and leads to large serialized formats for many classes.
+							Kryo serialization: Spark can also use the Kryo library (version 4) to serialize objects more quickly. Kryo is significantly faster and more compact than Java serialization (often as much as 10x), but does not support all Serializable types and requires you to register the classes you’ll use in the program in advance for best performance.
+
+						You can switch to using Kryo by initializing your job with a SparkConf and calling conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer"). This setting configures the serializer used for not only shuffling data between worker nodes but also when serializing RDDs to disk. The only reason Kryo is not the default is because of the custom registration requirement, but we recommend trying it in any network-intensive application. Since Spark 2.0.0, we internally use Kryo serializer when shuffling RDDs with simple types, arrays of simple types, or string type.
+
+						Spark automatically includes Kryo serializers for the many commonly-used core Scala classes covered in the AllScalaRegistrar from the Twitter chill library.
+
+						URL : https://spark.apache.org/docs/latest/tuning.html
+
+						PySpark Serialization
+
+						In general PySpark provides 2-tier serialization mechanism defined by actual serialization engine, like PickleSerializer, and batching mechanism. An additional specialized serializer is used to serialize closures. It is important to note that Python classes cannot be serialized. It means that modules containing class definitions have to be accessible on every machine in the cluster.
+						Python Serializers Characteristics
+						PickleSerializer
+
+						PickleSerializer is a default serialization engine which wraps Python pickle. As already mentioned it is a default serialization engine used to serialize data in PySpark.
+						Python 2 vs Python 3
+
+						There is a subtle difference in pickle imports between Python 2 and Python 3. While the former one imports cPickle directly, the latter one depends on built-in fallback mechanism. It means that in Python 3 it is possible, although highly unlikely, that PySpark will use pure Python implementation. See also What difference between pickle and _pickle in python 3?.
+						MarshalSerializer
+
+						MarshalSerializer is a wrapper around marhsal module which implements internal Python serialization mechanism. While in some cases it can be slightly faster than a default pickle it is significantly more limited and performance gain is probably to limited to make it useful in practice.
+						CloudPickle
+
+						CloudPickle is an extended version of the original cloudpickle project. It is used in PySpark to serialize closures. Among other interesting properties it can serialize functions defined in the __main__ module. See for example Passing Python functions as objects to Spark.
+
+						URL : https://github.com/awesome-spark/spark-gotchas/blob/master/09_serialization.md#pyspark-and-kryo
+
+					Vijay Answer:
+					   serialization is the process of converting an object into stream of bytes to store the object/transmit to memory or database or file.the main purpose of this is to save the state of the object to recreate it
+					   whenever needed.when we write a code(scala/python) ,it needs to be persisted so that code can be pushed over the network. for example, when we post an json object over API endpoint thru REST API, the object will be
+                       pushed over the network. 					   
+					  
+12. Current Project cluster configuration and size?.
+		(i). Cluster configuration details like memory and node details.
+13. Current Project Version details?.
+			Oracle DB size : 8 TB
+			one table size : 1 TB
+
+			Spark 
+			Spark Version  - 2.4
+			Hive Version   - 2.3
+			Kafka Version  - 2.4
+			Hadoop Version - 2.8
+			Python Version - 2.7 and 3.x
+			postgres latest version - 12.3
+			aurora db version - 3.4 postgres version - 11.9
+			pg admin version - 4.24
+			
+14. UDF functions in spark?.
+		(i). asNonNullable(): UserDefinedFunction
+				Updates UserDefinedFunction to non-nullable.
+		(ii). asNondeterministic(): UserDefinedFunction
+				Updates UserDefinedFunction to nondeterministic.
+		(iii). withName(name: String): UserDefinedFunction
+				Updates UserDefinedFunction with a given name.
+				
+15. Vectorization in spark?.
+    A standard query execution process one row at a time where as vectorization query execution process multiple rows in batches in columnar format. This feature reduces the CPU usage for
+	reading/writing/query operations like scanning/filtering.
+	
+16. Spark built-in-function examples?.
+		(i). like filter, map , joins, 
+		      
+		(ii). Aggregate function in spark
+		      All the generic aggregate functions can be used like max,min etc. 
+		(iii).Aggregate key vs reducebykey vs sortbykey?.
+		      GroupByKey-data is sent over the network and collected on the reduce workers
+			  ReduceByKey-Data are combined at each partition.only one output for one key at each partition is sent over the network.reduceByKey required combining all values
+			  into another value with same type.
+			  AggregateByKey- same as reduceByKey but it can return different data type.
+			  SortByKey- only works if the RDD is (key/value) pair RDD.if not pairRDD,please convert this to pairRDD using map transformation.			  
+		(iv). Explain about Partition 
+		(v). What is broadcast? Can we use broadcast for large data frame?
+			 Answer : broadcast variables are present in all executors, its basically used to maintain copy of lookup tables in executors so that everytime we don't need to bring it to memory. 
+			     	 we should not use large data frame in broadcast variables
+		(vi). What is accumulator?
+		(vii). How can we use in truncate in the spark?
+		       spark.sql("SELECT * FROM episode_tbl").show(truncate=False)
+			   The TRUNCATE TABLE statement removes all the rows from a table or partition(s). The table must not be a view or an external/temporary table. 
+			   In order to truncate multiple partitions at once, the user can specify the partitions in partition_spec. If no partition_spec is specified it will remove all partitions in the table.		   
+		(viii). Map and Map partition and map partition index
+		        Map would be used to transform the data/adding a column/update column.the output of the map transformation will be same no of input records.
+                Map partition will be used when there is heavy initialize required . it executes only once per partition.
+				
+		(ix). Map and flatmap?
+              map - always retruns n number of elements for n number of input.where as flatmp can be less or high or same number of elements
+		      
+		(x). Repartition Vs Colleasce
+		     
+		(xi). What exactly a list or tuple will hold?
+              list-mutable,tuple-immutable.
+			  
+17. How will you calculate the moving average over a data frame in spark?		
+    
+18. difference between map reduce and spark?.
+    map reduce is the data processing as part of hadoop framework.spark is the in memory computation .
+	
+19. difference  between parallism and shuffle?.
+    Parllelism 
+    spark.default.parallelism is the default number of partitions in RDDs returned by transformations like join, reduceByKey, and parallelize when not set explicitly by the user. 
+	Note that spark.default.parallelism seems to only be working for raw RDD and is ignored when working with dataframes. 
+	Shuffle
+	From the answer here, spark.sql.shuffle.partitions configures the number of partitions that are used when shuffling data for joins or aggregations.
+	spark.default.parallelism is the default number of partitions in RDDs returned by transformations like join, reduceByKey, and parallelize when not set explicitly by the user.
+	Note that spark.default.parallelism seems to only be working for raw RDD and is ignored when working with dataframes.
+    If the task you are performing is not a join or aggregation and you are working with dataframes then setting these will not have any effect. 
+    You could, however, set the number of partitions yourself by calling df.repartition(numOfPartitions) (don't forget to assign it to a new val) in your code.
+	
+	
+20. When you restart the job.
+
+21. how you can run hive on the top of spark?.
+  chnage the mr engine to spark in hive configuration 
+  
+22. yarn archecture?.
+23. PySpark Using JDBC connection
+--------------------------------
+	Step 1: 
+		We have to create spark context
+		  Sample Code
+			In_spark = Sparksession.builder \
+								   .config("spark.sql.source.partitionOverwritemode","dynamic") \
+								   .config("spark.sql.parquet.writeLegacyFormat", "true") \
+								   .getorCreate()
+
+	Step 2: 
+		Reading the data from oracle table Using JDBC connection.
+		 Sample Code
+			Df_read_data = in_spark.read.format(“jdbc”) \
+								   .option(“url”, JDBC Url) \
+								   .option(“driver”, Driver Value) \
+								   .option(“user”, User Name).option(“password”, password) \
+								   .option(“partitioncolumn”, in_partition_column ) \
+								   .option(“numpartitions”,in_num_partition) \
+								   .option(“dbtable”, “(select * from table_name) qry”) \
+								   .option(“fetchsize”, in_fetch_size).load()
+
+
+    Step 3:
+		Writing the data into database 
+		 Sample Code
+			df_read_data.write.mode(“append”) \
+						.format(“jdbc”)
+						.option(“url”, JDBC Url)
+						.option(“driver”, Driver Value) \
+						.option(“user”, User Name) \
+						.option(“password”, password) \
+						.option(“dbtable”, in_table_name) \
+						.option(“batchsize”, in_batch_size)
+						.save()
+
+24. jupyter for data analysis and spyder/pycharm for batch scripts/program
+25. Sample Spark program?.
+		import pyspark
+		from pyspark.sql import SparkSession, Row
+		from pyspark.sql.types import StructType,StructField, StringType
+
+		spark = SparkSession.builder.master('spark://ragav-HP-Notebook:7077').appName('SparkByExamples.com').getOrCreate()
+
+		#Using List
+		dept = [("Finance",10), 
+				("Marketing",20), 
+				("Sales",30), 
+				("IT",40) 
+			  ]
+
+		deptColumns = ["dept_name","dept_id"]
+		deptDF = spark.createDataFrame(data=dept, schema = deptColumns)
+		deptDF.printSchema()
+		deptDF.show(truncate=False)
+
+		deptSchema = StructType([       
+			StructField('firstname', StringType(), True),
+			StructField('middlename', StringType(), True),
+			StructField('lastname', StringType(), True)
+		])
+
+		deptDF1 = spark.createDataFrame(data=dept, schema = deptSchema)
+		deptDF1.printSchema()
+		deptDF1.show(truncate=False)
+
+		# Using list of Row type
+		dept2 = [Row("Finance",10), 
+				Row("Marketing",20), 
+				Row("Sales",30), 
+				Row("IT",40) 
+			  ]
+
+		deptDF2 = spark.createDataFrame(data=dept2, schema = deptColumns)
+		deptDF2.printSchema()
+		deptDF2.show(truncate=False)
+
+		# Convert list to RDD
+		rdd = spark.sparkContext.parallelize(dept)
+
+26. lazy evaluation -> what happens when you don't perform action?
+27. How can you convert into NULL values if the dataframe column values is blank?.
+		DataFrame df is having 100 columns
+
+		If value is blank convert it to NULL
+		else if datatype is timestamp convert it to date
+
+		for col in df.columns():
+			if df['col'].type()=='Timestamp':
+				df.withClolumn(col+'_1',nvl(date(df[col]),''))
+			elif df
+
+28. How can you map on student to class teacher ?
+
+		'XYZ',[class1,class1,class1],[ABC,ABC,ABC],[15,12,13]
+
+		Student
+		Class name 	student name 	student age 	class teacher name
+		Class 1 	ABC		15		XYZ
+		Class 1 	ABC		12		XYZ
+		Class 1 	ABC		13		XYZ
+		Class 2 	ABC		12		MNC
+		Class 2 	ABC		13		MNC
+		Class 2 	ABC		13		MNC
+
+		rdd.map(lambda x:x[0],x[1],x[2],x[3])
+29. How do you do spark submit ?
+30. Does your cluster run on demand or 24/7 ?
+31. What are the issues faced during spark migration ?
+32. What happens when we do a spark submit -> the overall flow of the spark application?.
+33. why not kafka connect instead of pyspark script for moving data from RDMS to HDFS?
+34. how do you improve performance of joins -> use proper partitions while creating the data frame so that shuffle will be limited
+35. how is the spark submit triggered in your project ?
+36. when do you use persist in spark dataframe?
+37. how to join two dataframes with huge values?
+38. How to you read csv file and write the data into parquet file with specfic file name format in S3?
+39. How do we define spark memory?.
+			Answers : 
+
+				(i) : 
+				**Cluster Config:**
+				10 Node Cluster ( 1 Master Node, 9 Worker Nodes)
+				Each 16VCores and 64GB RAM
+
+				spark.excutor.cores  = 5
+
+				spark.executor.instances
+
+				No. of executors/instance = (total number of virtual cores per instance – 1)/spark.executors.cores[1 reserve it for the Hadoop daemons]
+														  = (16-1)/5
+														  =15/5 = 3
+
+				spark.executor.instances = (number of executors per instance * number of core instances) – 1[1 for driver]
+														= (3 * 9) – 1
+														= 27-1 = 26
+
+				spark.executor.memory
+
+				Total executor memory = total RAM per instance / number of executors per instance
+													  = 63/3 = 21
+
+				Leave 1 GB for the Hadoop daemons.
+				This total executor memory includes both executor memory and overheap in the ratio of 90% and 10%.
+				So,
+
+				spark.executor.memory = 21 * 0.90 = 19GB
+
+				spark.yarn.executor.memoryOverhead = 21 * 0.10 = 2GB
+
+				spark.driver.memory = spark.executors.memory
+
+				spark.driver.cores= spark.executors.cores
+
+				URL : https://blogs.perficient.com/2020/08/25/key-components-calculations-for-spark-memory-management/
+
+				URL : https://spoddutur.github.io/spark-notes/distribution_of_executors_cores_and_memory_for_spark_application.html
